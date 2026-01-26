@@ -35,10 +35,19 @@ const pool = mysql.createPool({
 })
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'octopus-chat-api' })
+app.get('/health', async (req, res) => {
+  try {
+    await pool.execute('SELECT 1')
+    res.json({ status: 'ok', service: 'octopus-chat-api', database: 'connected' })
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      service: 'octopus-chat-api', 
+      database: 'disconnected',
+      error: error.message 
+    })
+  }
 })
-
 // Get messages between two users
 app.get('/api/messages', async (req, res) => {
   const { user1, user2, limit = 50, offset = 0 } = req.query
