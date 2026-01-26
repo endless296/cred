@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "chat": "node chat-api.js",
-    "push": "node push-notifications.js"
+    "chat": "node chat-api.js"
   },
   "dependencies": {
     "express": "^5.2.1",
