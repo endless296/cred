@@ -2,14 +2,22 @@
 import express from 'express'
 import cors from 'cors'
 import mysql from 'mysql2/promise'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 const app = express()
-const isDev = process.env.NODE_ENV !== 'production'
 
-// Enable CORS - allow all origins
+// Environment variables with fallbacks
+const config = {
+  TIDB_HOST: process.env.TIDB_HOST || 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+  TIDB_USER: process.env.TIDB_USER || '2SHYvufPPw5WRu3.root',
+  TIDB_PASSWORD: process.env.TIDB_PASSWORD || 'VnSJyZS7gWFwFP23',
+  TIDB_DATABASE: process.env.TIDB_DATABASE || 'test',
+  PORT: process.env.PORT || 8080,
+  NODE_ENV: process.env.NODE_ENV || 'production'
+}
+
+const isDev = config.NODE_ENV !== 'production'
+
+// CORS - allow all origins
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -18,27 +26,44 @@ app.use(cors({
 
 app.use(express.json())
 
-// TiDB Connection Pool
+// TiDB Connection Pool - REMOVED privatelink, use public endpoint
 const pool = mysql.createPool({
-  host: process.env.TIDB_HOST,
+  host: config.TIDB_HOST.replace('-privatelink', ''), // Remove privatelink if present
   port: 4000,
-  user: process.env.TIDB_USER,
-  password: process.env.TIDB_PASSWORD,
-  database: process.env.TIDB_DATABASE || 'test',
+  user: config.TIDB_USER,
+  password: config.TIDB_PASSWORD,
+  database: config.TIDB_DATABASE,
   ssl: {
     minVersion: 'TLSv1.2',
-    rejectUnauthorized: true
+    rejectUnauthorized: false // Changed to false for Railway compatibility
   },
   connectionLimit: 10,
   waitForConnections: true,
-  queueLimit: 0
+  queueLimit: 0,
+  connectTimeout: 10000
 })
+
+// Test database connection on startup
+pool.getConnection()
+  .then(connection => {
+    console.log('✅ Database connected successfully')
+    connection.release()
+  })
+  .catch(err => {
+    console.error('⚠️ Database connection failed:', err.message)
+    console.error('Server will start but database queries will fail')
+  })
 
 // Health check
 app.get('/health', async (req, res) => {
   try {
     await pool.execute('SELECT 1')
-    res.json({ status: 'ok', service: 'octopus-chat-api', database: 'connected' })
+    res.json({ 
+      status: 'ok', 
+      service: 'octopus-chat-api',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    })
   } catch (error) {
     res.status(500).json({ 
       status: 'error', 
@@ -48,6 +73,7 @@ app.get('/health', async (req, res) => {
     })
   }
 })
+
 // Get messages between two users
 app.get('/api/messages', async (req, res) => {
   const { user1, user2, limit = 50, offset = 0 } = req.query
@@ -71,8 +97,8 @@ app.get('/api/messages', async (req, res) => {
 
     res.json({ messages: rows.reverse() })
   } catch (error) {
-    if (isDev) console.error('Error fetching messages:', error)
-    res.status(500).json({ error: 'Failed to fetch messages' })
+    console.error('Error fetching messages:', error.message)
+    res.status(500).json({ error: 'Failed to fetch messages', details: isDev ? error.message : undefined })
   }
 })
 
@@ -98,7 +124,6 @@ app.post('/api/messages', async (req, res) => {
       [id, sender_id, receiver_id, message || null, photo || null, reply_to_id || null, created_at]
     )
 
-    // Update conversations table
     await updateConversation(sender_id, receiver_id, id, created_at)
 
     const [newMessage] = await pool.execute(
@@ -108,8 +133,8 @@ app.post('/api/messages', async (req, res) => {
 
     res.json({ message: newMessage[0] })
   } catch (error) {
-    if (isDev) console.error('Error sending message:', error)
-    res.status(500).json({ error: 'Failed to send message' })
+    console.error('Error sending message:', error.message)
+    res.status(500).json({ error: 'Failed to send message', details: isDev ? error.message : undefined })
   }
 })
 
@@ -134,8 +159,8 @@ app.patch('/api/messages/seen', async (req, res) => {
 
     res.json({ success: true })
   } catch (error) {
-    if (isDev) console.error('Error marking messages as seen:', error)
-    res.status(500).json({ error: 'Failed to mark messages as seen' })
+    console.error('Error marking messages as seen:', error.message)
+    res.status(500).json({ error: 'Failed to mark messages as seen', details: isDev ? error.message : undefined })
   }
 })
 
@@ -172,8 +197,8 @@ app.get('/api/conversations', async (req, res) => {
 
     res.json({ conversations })
   } catch (error) {
-    if (isDev) console.error('Error fetching conversations:', error)
-    res.status(500).json({ error: 'Failed to fetch conversations' })
+    console.error('Error fetching conversations:', error.message)
+    res.status(500).json({ error: 'Failed to fetch conversations', details: isDev ? error.message : undefined })
   }
 })
 
@@ -194,8 +219,8 @@ app.get('/api/messages/unread-count', async (req, res) => {
 
     res.json({ count: rows[0].count })
   } catch (error) {
-    if (isDev) console.error('Error fetching unread count:', error)
-    res.status(500).json({ error: 'Failed to fetch unread count' })
+    console.error('Error fetching unread count:', error.message)
+    res.status(500).json({ error: 'Failed to fetch unread count', details: isDev ? error.message : undefined })
   }
 })
 
@@ -247,7 +272,7 @@ async function updateConversation(sender_id, receiver_id, message_id, created_at
       )
     }
   } catch (error) {
-    if (isDev) console.error('Error updating conversation:', error)
+    console.error('Error updating conversation:', error.message)
   }
 }
 
@@ -274,13 +299,15 @@ async function resetUnreadCount(user_id, message_ids) {
       )
     }
   } catch (error) {
-    if (isDev) console.error('Error resetting unread count:', error)
+    console.error('Error resetting unread count:', error.message)
   }
 }
 
-const PORT = process.env.PORT || 3001
-app.listen(PORT, () => {
-  console.log(`✅ Chat API running on port ${PORT}`)
+// Start server
+app.listen(config.PORT, '0.0.0.0', () => {
+  console.log(`✅ Chat API running on port ${config.PORT}`)
+  console.log(`📡 Environment: ${config.NODE_ENV}`)
+  console.log(`🗄️  Database: ${config.TIDB_HOST}`)
 })
 
 export { pool }
