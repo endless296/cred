@@ -117,7 +117,7 @@ app.post('/api/push/send', async (req, res) => {
   }
 })
 
-// ✅ NEW ENDPOINT - Get unread message count
+// Get unread message count
 app.get('/api/messages/unread-count', async (req, res) => {
   const { user_id } = req.query
 
@@ -310,7 +310,7 @@ async function notifyAppNotification(notification) {
 
 // Setup Supabase realtime listeners
 function setupRealtimeNotifications() {
-  // Listen for new app notifications
+  // Listen for new app notifications (likes, comments, follows, etc.)
   supabase
     .channel('notifications')
     .on(
@@ -321,12 +321,37 @@ function setupRealtimeNotifications() {
         table: 'notifications'
       },
       async (payload) => {
+        console.log('🔔 New notification detected:', payload.new.type)
         await notifyAppNotification(payload.new)
       }
     )
     .subscribe()
 
+  // 🆕 Listen for new chat messages
+  supabase
+    .channel('chat_messages')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages'
+      },
+      async (payload) => {
+        const message = payload.new
+        console.log(`💬 New message from ${message.sender_id} to ${message.receiver_id}`)
+        await notifyNewMessage(
+          message.sender_id,
+          message.receiver_id,
+          message
+        )
+      }
+    )
+    .subscribe()
+
   console.log('✅ Realtime notification listeners active')
+  console.log('   → Listening to: notifications table')
+  console.log('   → Listening to: chat_messages table')
 }
 
 // Start realtime listeners
