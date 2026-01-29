@@ -15,25 +15,25 @@ app.use(cors({
 
 app.use(express.json())
 
-// HARDCODED CREDENTIALS FOR TESTING
+// Load credentials from environment variables
 const FIREBASE_CONFIG = {
-  "type": "service_account",
-  "project_id": "josh-d6c",
-  "private_key_id": "59383438d68a0f248e2054d82be93246ef967c38",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC64Y1RGTkt+gWU\nklM1MCjaN9auQpr9QE+Pf5XBVp2PL2cQ7d/o8TxC+ZeGfS1ng+3g2g2JDNefrMZs\niPuOji+JH+YuvWe2v0gc89Mpmf9yIU6LGXc8dw/5I362Bq7jb18w53tL6F3kyOxS\nL0AEs32rXHz/eNu9C0GNgx+G5pfdE/jUNrNOkU08RHcYZfXBqZ+qJfhT9Ad110Li\nHjO1rf3NNqRgNRY1yYvH6lvZPWFIgmTF66aLQ2yFPhG1rh0UbSdZIyK6dLDTG0uU\n98GaGKVDJs/Y/PVWgOXdjeQT/BhmrGgeqbctSJ/EEKHm7QqRs4rg1ORaTq+uPNoq\nNPruZLzBAgMBAAECggEAA1xgvGd4jmRlToSnYIqqPPkX/nO8Tpre+ohnI8jsteo6\nmh2d76RaGs/M2jQpVCfcoO3a+a7Uf3I/nNdMtYWqF/cN89x1JoknHZMRpkd+OBEQ\nRrZ2zuHZDYZ4DvUz7BX0f3dgfFRg3TydzZ2uegAOXeiELk0cZv+OxL53/vUiywlJ\nMkWkXprSGoGufUCgR+aGoPjPzJJtCX1gyx6t5kcSShS4BLQyK+hB/rEYofr+a08a\n5vCLINJGkXR8usP6Pht9iI8NnHWkAS7uhnjJihWgqSqE/6eqljGcCqJozjikJ1fT\nQ8SmstYrHhUQY8Mp8JhNtznhG4wUbT2wZvP+hbjLKQKBgQDpffbIkhBYpJwz8q4g\nnHEB2nqynf5W4i0acV85Brt9fj8JqQH8fjIaHD5CdsCD82iskWtTk+A6CbhD2mqh\ndkFXUp5H8OfbU/WqDZL9Ng78R1LFUfsitbIYo50DS8V1QWwZjAwDqJQfWcW1VYHT\n5BJtEhiOTqdsQh4U04Y0QPyurQKBgQDM5VaYnZIwpp5hYJRll8dA2Rga/rXts7ue\nHhsCcJFJmZ+gfQO6hdfIM5MM1J0LdXiFEVmcVqosvJ+yJOlRJd+gqgTogTC8Hzd0\n8Dk9QcR/3kLmhJgWjA7vQBf51CvXJTUfIR7ijtWAqZScYoDE/NszEzso1alSBqwm\n9A7bvEns5QKBgQCHFdVdHQRQBIxKkbCkNV48EEbEaBvp8Fjf34+T0o1OgWe/EwSP\nLAOYj5aFpWaj8IMys79AT2F+snjk6MygNWaAOtBQFtRNVDng9JGB5XCuDCWa+18s\nKaqsDpycd4351KvR6/BXfYSUzr9PtfSyvlTavYlva5n5TBdTPT17pc2K0QKBgQCF\n/4Y+kO5GevEhZfQm7LgWpOOq4+E+70hIBBBN7ChYJevLHXcOyPFxsKj+vx1lnRGQ\nlOQx5kusrj8SVilwNICnpglHtRWWMiQmieQlN5m2tjiyYQzF0hsCRLxpWmTBc0fm\nb9au/BKM7lqOW60zJtqD8JPEBNeTGWIEp5///IesMQKBgExyq4n0F8IWIq6nSa8B\nofzzIqkIsP7GFGIk85cENITSgPNmbDK1Pad7res5HmWzOpZOpmzHwlG2dIwd7o71\nSSQ/Y2C2GbXAlP/wrXkVC+3W4/+SyuVuyS8Cz5SKBf3joMNkBNWXk83Zl6Z7fY9K\nkjYzJ9sOytH7jPgPjGsk02ej\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@josh-d6c.iam.gserviceaccount.com",
-  "client_id": "102083422266274596438",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40josh-d6c.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+  universe_domain: "googleapis.com"
 }
 
-const SUPABASE_URL = "https://hqrsymjlycynalfgkefx.supabase.co"
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxcnN5bWpseWN5bmFsZmdrZWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5OTY1MDAsImV4cCI6MjA4MDU3MjUwMH0.2_o7PG-qQkYaFJSmGuvZFPi2nwQ7ERwaP5RE0fWuwWw"
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_KEY = process.env.SUPABASE_KEY
 
-console.log('🔧 Starting Push API with hardcoded credentials...')
+console.log('🔧 Starting Push API...')
 
 // Initialize Firebase Admin
 try {
