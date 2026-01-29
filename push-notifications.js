@@ -2,9 +2,6 @@ import express from 'express'
 import cors from 'cors'
 import admin from 'firebase-admin'
 import { createClient } from '@supabase/supabase-js'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 const app = express()
 const isDev = process.env.NODE_ENV !== 'production'
@@ -18,27 +15,30 @@ app.use(cors({
 
 app.use(express.json())
 
+// HARDCODED CREDENTIALS FOR TESTING
+const FIREBASE_CONFIG = {
+  "type": "service_account",
+  "project_id": "josh-d6c",
+  "private_key_id": "59383438d68a0f248e2054d82be93246ef967c38",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC64Y1RGTkt+gWU\nklM1MCjaN9auQpr9QE+Pf5XBVp2PL2cQ7d/o8TxC+ZeGfS1ng+3g2g2JDNefrMZs\niPuOji+JH+YuvWe2v0gc89Mpmf9yIU6LGXc8dw/5I362Bq7jb18w53tL6F3kyOxS\nL0AEs32rXHz/eNu9C0GNgx+G5pfdE/jUNrNOkU08RHcYZfXBqZ+qJfhT9Ad110Li\nHjO1rf3NNqRgNRY1yYvH6lvZPWFIgmTF66aLQ2yFPhG1rh0UbSdZIyK6dLDTG0uU\n98GaGKVDJs/Y/PVWgOXdjeQT/BhmrGgeqbctSJ/EEKHm7QqRs4rg1ORaTq+uPNoq\nNPruZLzBAgMBAAECggEAA1xgvGd4jmRlToSnYIqqPPkX/nO8Tpre+ohnI8jsteo6\nmh2d76RaGs/M2jQpVCfcoO3a+a7Uf3I/nNdMtYWqF/cN89x1JoknHZMRpkd+OBEQ\nRrZ2zuHZDYZ4DvUz7BX0f3dgfFRg3TydzZ2uegAOXeiELk0cZv+OxL53/vUiywlJ\nMkWkXprSGoGufUCgR+aGoPjPzJJtCX1gyx6t5kcSShS4BLQyK+hB/rEYofr+a08a\n5vCLINJGkXR8usP6Pht9iI8NnHWkAS7uhnjJihWgqSqE/6eqljGcCqJozjikJ1fT\nQ8SmstYrHhUQY8Mp8JhNtznhG4wUbT2wZvP+hbjLKQKBgQDpffbIkhBYpJwz8q4g\nnHEB2nqynf5W4i0acV85Brt9fj8JqQH8fjIaHD5CdsCD82iskWtTk+A6CbhD2mqh\ndkFXUp5H8OfbU/WqDZL9Ng78R1LFUfsitbIYo50DS8V1QWwZjAwDqJQfWcW1VYHT\n5BJtEhiOTqdsQh4U04Y0QPyurQKBgQDM5VaYnZIwpp5hYJRll8dA2Rga/rXts7ue\nHhsCcJFJmZ+gfQO6hdfIM5MM1J0LdXiFEVmcVqosvJ+yJOlRJd+gqgTogTC8Hzd0\n8Dk9QcR/3kLmhJgWjA7vQBf51CvXJTUfIR7ijtWAqZScYoDE/NszEzso1alSBqwm\n9A7bvEns5QKBgQCHFdVdHQRQBIxKkbCkNV48EEbEaBvp8Fjf34+T0o1OgWe/EwSP\nLAOYj5aFpWaj8IMys79AT2F+snjk6MygNWaAOtBQFtRNVDng9JGB5XCuDCWa+18s\nKaqsDpycd4351KvR6/BXfYSUzr9PtfSyvlTavYlva5n5TBdTPT17pc2K0QKBgQCF\n/4Y+kO5GevEhZfQm7LgWpOOq4+E+70hIBBBN7ChYJevLHXcOyPFxsKj+vx1lnRGQ\nlOQx5kusrj8SVilwNICnpglHtRWWMiQmieQlN5m2tjiyYQzF0hsCRLxpWmTBc0fm\nb9au/BKM7lqOW60zJtqD8JPEBNeTGWIEp5///IesMQKBgExyq4n0F8IWIq6nSa8B\nofzzIqkIsP7GFGIk85cENITSgPNmbDK1Pad7res5HmWzOpZOpmzHwlG2dIwd7o71\nSSQ/Y2C2GbXAlP/wrXkVC+3W4/+SyuVuyS8Cz5SKBf3joMNkBNWXk83Zl6Z7fY9K\nkjYzJ9sOytH7jPgPjGsk02ej\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@josh-d6c.iam.gserviceaccount.com",
+  "client_id": "102083422266274596438",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40josh-d6c.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+
+const SUPABASE_URL = "https://hqrsymjlycynalfgkefx.supabase.co"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxcnN5bWpseWN5bmFsZmdrZWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5OTY1MDAsImV4cCI6MjA4MDU3MjUwMH0.2_o7PG-qQkYaFJSmGuvZFPi2nwQ7ERwaP5RE0fWuwWw"
+
+console.log('🔧 Starting Push API with hardcoded credentials...')
+
 // Initialize Firebase Admin
-const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT
-
-if (!serviceAccountJson) {
-  console.error('❌ FIREBASE_SERVICE_ACCOUNT not set')
-  console.error('Please set this environment variable in Railway with your Firebase service account JSON')
-  process.exit(1)
-}
-
-let serviceAccount
-try {
-  serviceAccount = JSON.parse(serviceAccountJson)
-  console.log('✅ Firebase service account loaded')
-} catch (error) {
-  console.error('❌ Invalid FIREBASE_SERVICE_ACCOUNT JSON:', error.message)
-  process.exit(1)
-}
-
 try {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(FIREBASE_CONFIG)
   })
   console.log('✅ Firebase Admin initialized')
 } catch (error) {
@@ -47,19 +47,11 @@ try {
 }
 
 // Initialize Supabase
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ SUPABASE_URL or SUPABASE_SERVICE_KEY not set')
-  console.error('Please set these environment variables in Railway')
-  process.exit(1)
-}
-
 let supabase
 try {
-  supabase = createClient(supabaseUrl, supabaseKey)
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
   console.log('✅ Supabase client initialized')
+  console.log('   URL:', SUPABASE_URL)
 } catch (error) {
   console.error('❌ Failed to initialize Supabase:', error.message)
   process.exit(1)
@@ -70,7 +62,11 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'octopus-push-api',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    config: {
+      firebase: '✅ initialized',
+      supabase: '✅ initialized'
+    }
   })
 })
 
@@ -78,21 +74,33 @@ app.get('/health', (req, res) => {
 app.post('/api/push/register', async (req, res) => {
   const { user_id, token, platform } = req.body
 
+  console.log('📝 Register request:', { user_id, token: token?.substring(0, 20) + '...', platform })
+
   if (!user_id || !token || !platform) {
+    console.log('❌ Missing required fields')
     return res.status(400).json({ error: 'user_id, token, and platform required' })
   }
 
   try {
-    const { error } = await supabase
+    console.log('💾 Attempting to insert into Supabase...')
+    
+    const { data, error } = await supabase
       .from('push_tokens')
       .upsert({ user_id, token, platform }, { onConflict: 'token' })
 
-    if (error) throw error
+    if (error) {
+      console.error('❌ Supabase error:', error)
+      throw error
+    }
 
+    console.log('✅ Token registered successfully')
     res.json({ success: true })
   } catch (error) {
-    if (isDev) console.error('Error registering token:', error)
-    res.status(500).json({ error: 'Failed to register token' })
+    console.error('❌ Error registering token:', error)
+    res.status(500).json({ 
+      error: 'Failed to register token',
+      details: isDev ? error.message : undefined
+    })
   }
 })
 
@@ -114,7 +122,7 @@ app.post('/api/push/unregister', async (req, res) => {
 
     res.json({ success: true })
   } catch (error) {
-    if (isDev) console.error('Error unregistering token:', error)
+    console.error('Error unregistering token:', error)
     res.status(500).json({ error: 'Failed to unregister token' })
   }
 })
@@ -131,7 +139,7 @@ app.post('/api/push/send', async (req, res) => {
     const result = await sendPushNotification(user_id, notification)
     res.json(result)
   } catch (error) {
-    if (isDev) console.error('Error sending notification:', error)
+    console.error('Error sending notification:', error)
     res.status(500).json({ error: 'Failed to send notification' })
   }
 })
@@ -148,7 +156,7 @@ app.get('/api/messages/unread-count', async (req, res) => {
     const count = await getUnreadCount(user_id)
     res.json({ count })
   } catch (error) {
-    if (isDev) console.error('Error fetching unread count:', error)
+    console.error('Error fetching unread count:', error)
     res.status(500).json({ error: 'Failed to fetch unread count' })
   }
 })
@@ -164,7 +172,7 @@ async function sendPushNotification(userId, notification) {
     if (error) throw error
 
     if (!tokens || tokens.length === 0) {
-      if (isDev) console.log(`No push tokens for user ${userId}`)
+      console.log(`No push tokens for user ${userId}`)
       return { success: 0, failed: 0 }
     }
 
@@ -206,7 +214,7 @@ async function sendPushNotification(userId, notification) {
     const invalidTokens = []
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        if (isDev) console.error(`Failed to send to token ${tokens[index].token}:`, result.reason)
+        console.error(`Failed to send to token ${tokens[index].token}:`, result.reason)
         
         if (
           result.reason?.code === 'messaging/invalid-registration-token' ||
@@ -230,7 +238,7 @@ async function sendPushNotification(userId, notification) {
     }
 
   } catch (error) {
-    if (isDev) console.error('Error sending push notification:', error)
+    console.error('Error sending push notification:', error)
     throw error
   }
 }
@@ -242,7 +250,7 @@ async function getUnreadCount(userId) {
     const data = await response.json()
     return data.count || 0
   } catch (error) {
-    if (isDev) console.error('Error fetching unread count:', error)
+    console.error('Error fetching unread count:', error)
     return 0
   }
 }
@@ -286,7 +294,7 @@ async function notifyNewMessage(senderId, receiverId, message) {
       }
     })
   } catch (error) {
-    if (isDev) console.error('Error in notifyNewMessage:', error)
+    console.error('Error in notifyNewMessage:', error)
   }
 }
 
@@ -323,12 +331,14 @@ async function notifyAppNotification(notification) {
       badge: await getAppNotificationCount(recipient_id)
     })
   } catch (error) {
-    if (isDev) console.error('Error in notifyAppNotification:', error)
+    console.error('Error in notifyAppNotification:', error)
   }
 }
 
 // Setup Supabase realtime listeners
 function setupRealtimeNotifications() {
+  console.log('🔄 Setting up realtime listeners...')
+  
   // Listen for new app notifications (likes, comments, follows, etc.)
   supabase
     .channel('notifications')
@@ -344,7 +354,9 @@ function setupRealtimeNotifications() {
         await notifyAppNotification(payload.new)
       }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log('   notifications channel status:', status)
+    })
 
   // Listen for new chat messages
   supabase
@@ -366,9 +378,11 @@ function setupRealtimeNotifications() {
         )
       }
     )
-    .subscribe()
+    .subscribe((status) => {
+      console.log('   chat_messages channel status:', status)
+    })
 
-  console.log('✅ Realtime notification listeners active')
+  console.log('✅ Realtime notification listeners configured')
   console.log('   → Listening to: notifications table')
   console.log('   → Listening to: chat_messages table')
 }
