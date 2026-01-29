@@ -71,6 +71,7 @@ app.get('/health', (req, res) => {
 })
 
 // Register push token
+// Register push token
 app.post('/api/push/register', async (req, res) => {
   const { user_id, token, platform } = req.body
 
@@ -86,7 +87,12 @@ app.post('/api/push/register', async (req, res) => {
     
     const { data, error } = await supabase
       .from('push_tokens')
-      .upsert({ user_id, token, platform }, { onConflict: 'token' })
+      .upsert(
+        { user_id, token, platform }, 
+        { 
+          onConflict: 'user_id,platform'
+        }
+      )
 
     if (error) {
       console.error('❌ Supabase error:', error)
@@ -94,7 +100,7 @@ app.post('/api/push/register', async (req, res) => {
     }
 
     console.log('✅ Token registered successfully')
-    res.json({ success: true })
+    res.json({ success: true, data })
   } catch (error) {
     console.error('❌ Error registering token:', error)
     res.status(500).json({ 
