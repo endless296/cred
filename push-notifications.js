@@ -117,6 +117,23 @@ app.post('/api/push/send', async (req, res) => {
   }
 })
 
+// ✅ NEW ENDPOINT - Get unread message count
+app.get('/api/messages/unread-count', async (req, res) => {
+  const { user_id } = req.query
+
+  if (!user_id) {
+    return res.status(400).json({ error: 'user_id required' })
+  }
+
+  try {
+    const count = await getUnreadCount(user_id)
+    res.json({ count })
+  } catch (error) {
+    if (isDev) console.error('Error fetching unread count:', error)
+    res.status(500).json({ error: 'Failed to fetch unread count' })
+  }
+})
+
 // Send push notification function
 async function sendPushNotification(userId, notification) {
   try {
@@ -206,6 +223,7 @@ async function getUnreadCount(userId) {
     const data = await response.json()
     return data.count || 0
   } catch (error) {
+    if (isDev) console.error('Error fetching unread count:', error)
     return 0
   }
 }
