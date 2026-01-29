@@ -1,4 +1,3 @@
-// backend/push-server.js
 import express from 'express'
 import cors from 'cors'
 import admin from 'firebase-admin'
@@ -24,20 +23,28 @@ const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT
 
 if (!serviceAccountJson) {
   console.error('❌ FIREBASE_SERVICE_ACCOUNT not set')
+  console.error('Please set this environment variable in Railway with your Firebase service account JSON')
   process.exit(1)
 }
 
 let serviceAccount
 try {
   serviceAccount = JSON.parse(serviceAccountJson)
+  console.log('✅ Firebase service account loaded')
 } catch (error) {
-  console.error('❌ Invalid FIREBASE_SERVICE_ACCOUNT JSON')
+  console.error('❌ Invalid FIREBASE_SERVICE_ACCOUNT JSON:', error.message)
   process.exit(1)
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-})
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  })
+  console.log('✅ Firebase Admin initialized')
+} catch (error) {
+  console.error('❌ Failed to initialize Firebase Admin:', error.message)
+  process.exit(1)
+}
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
@@ -45,14 +52,26 @@ const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABAS
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ SUPABASE_URL or SUPABASE_SERVICE_KEY not set')
+  console.error('Please set these environment variables in Railway')
   process.exit(1)
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+let supabase
+try {
+  supabase = createClient(supabaseUrl, supabaseKey)
+  console.log('✅ Supabase client initialized')
+} catch (error) {
+  console.error('❌ Failed to initialize Supabase:', error.message)
+  process.exit(1)
+}
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'octopus-push-api' })
+  res.json({ 
+    status: 'ok', 
+    service: 'octopus-push-api',
+    timestamp: new Date().toISOString()
+  })
 })
 
 // Register push token
@@ -327,7 +346,7 @@ function setupRealtimeNotifications() {
     )
     .subscribe()
 
-  // 🆕 Listen for new chat messages
+  // Listen for new chat messages
   supabase
     .channel('chat_messages')
     .on(
@@ -354,16 +373,35 @@ function setupRealtimeNotifications() {
   console.log('   → Listening to: chat_messages table')
 }
 
-// Start realtime listeners
-setupRealtimeNotifications()
-
+// Start server first, then setup listeners
 const PORT = process.env.PORT || 3002
+
 app.listen(PORT, () => {
   console.log(`✅ Push API running on port ${PORT}`)
+  console.log(`✅ Health check available at http://localhost:${PORT}/health`)
+  
+  // Setup realtime listeners after server starts
+  try {
+    setupRealtimeNotifications()
+  } catch (error) {
+    console.error('⚠️  Failed to setup realtime listeners:', error.message)
+    console.error('   The API will still work for direct push notifications')
+  }
+})
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully')
+  process.exit(0)
+})
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully')
+  process.exit(0)
 })
 
 // Export for testing
-export default {
+export {
   sendPushNotification,
   notifyNewMessage,
   notifyAppNotification
