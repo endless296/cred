@@ -189,6 +189,23 @@ app.post('/api/push/send', async (req, res) => {
   }
 })
 
+// Send call notification
+app.post('/api/push/call', async (req, res) => {
+  const { caller_id, receiver_id, call_type } = req.body
+
+  if (!caller_id || !receiver_id || !call_type) {
+    return res.status(400).json({ error: 'caller_id, receiver_id, and call_type required' })
+  }
+
+  try {
+    await notifyCall(caller_id, receiver_id, call_type)
+    res.json({ success: true })
+  } catch (error) {
+    console.error('❌ Call notification failed:', error.message)
+    res.status(500).json({ error: 'Failed to send call notification' })
+  }
+})
+
 // Get unread message count
 app.get('/api/messages/unread-count', async (req, res) => {
   const { user_id } = req.query
@@ -209,15 +226,10 @@ app.get('/api/messages/unread-count', async (req, res) => {
 // Send push notification function
 async function sendPushNotification(userId, notification) {
   try {
-    console.log('🔍 DEBUG: Fetching tokens for user:', userId)
-    
     const { data: tokens, error } = await supabase
       .from('push_tokens')
       .select('token, platform')
       .eq('user_id', userId)
-
-    console.log('🔍 DEBUG: Tokens found:', tokens?.length)
-    console.log('🔍 DEBUG: First token:', tokens?.[0]?.token?.substring(0, 30) + '...')
 
     if (error) throw error
 
@@ -254,31 +266,16 @@ async function sendPushNotification(userId, notification) {
       }
     }
 
-    console.log('🔍 DEBUG: Message to send:', JSON.stringify(message, null, 2))
-
     const results = await Promise.allSettled(
-      tokens.map(({ token }) => {
-        console.log('🔍 DEBUG: Attempting send to:', token.substring(0, 30) + '...')
-        return admin.messaging().send({ ...message, token })
-          .then(response => {
-            console.log('✅ SUCCESS! Message ID:', response)
-            return response
-          })
-          .catch(error => {
-            console.error('❌ SEND FAILED:', error.code, '-', error.message)
-            console.error('Full error:', JSON.stringify(error, null, 2))
-            throw error
-          })
-      })
+      tokens.map(({ token }) =>
+        admin.messaging().send({ ...message, token })
+      )
     )
-
-    console.log('🔍 DEBUG: All results:', results.map(r => r.status))
 
     const invalidTokens = []
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
         const errorCode = result.reason?.code
-        console.log('❌ Token failed with code:', errorCode)
         if (
           errorCode === 'messaging/invalid-registration-token' ||
           errorCode === 'messaging/registration-token-not-registered'
@@ -289,7 +286,6 @@ async function sendPushNotification(userId, notification) {
     })
 
     if (invalidTokens.length > 0) {
-      console.log('🗑️ Deleting invalid tokens:', invalidTokens.length)
       await supabase
         .from('push_tokens')
         .delete()
@@ -298,8 +294,6 @@ async function sendPushNotification(userId, notification) {
 
     const successCount = results.filter(r => r.status === 'fulfilled').length
     const failedCount = results.filter(r => r.status === 'rejected').length
-
-    console.log('📊 Final result: success=' + successCount + ', failed=' + failedCount)
 
     return { success: successCount, failed: failedCount }
   } catch (error) {
@@ -361,6 +355,35 @@ async function notifyNewMessage(senderId, receiverId, message) {
     })
   } catch (error) {
     console.error('❌ notifyNewMessage error:', error.message)
+  }
+}
+
+// Notify on incoming call
+async function notifyCall(callerId, receiverId, callType) {
+  try {
+    const { data: caller, error } = await supabase
+      .from('users')
+      .select('full_name, profile_photo_url')
+      .eq('id', callerId)
+      .single()
+
+    if (error || !caller) return
+
+    await sendPushNotification(receiverId, {
+      title: `${callType === 'video' ? '📹' : '📞'} Incoming ${callType} call`,
+      body: `${caller.full_name} is calling...`,
+      image: caller.profile_photo_url,
+      type: 'call',
+      userId: callerId,
+      badge: 1,
+      data: {
+        callType,
+        callerId,
+        callerName: caller.full_name
+      }
+    })
+  } catch (error) {
+    console.error('❌ notifyCall error:', error.message)
   }
 }
 
@@ -439,17 +462,8 @@ function setupRealtimeNotifications() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'chat_messages' },
       async (payload) => {
-        console.log('💬 DEBUG: RAW PAYLOAD RECEIVED')
-        console.log('💬 DEBUG: Full payload:', JSON.stringify(payload, null, 2))
         const message = payload.new
-        console.log('💬 DEBUG: Parsed message:', {
-          sender_id: message.sender_id,
-          receiver_id: message.receiver_id,
-          message: message.message
-        })
-        console.log('💬 DEBUG: Calling notifyNewMessage...')
         await notifyNewMessage(message.sender_id, message.receiver_id, message)
-        console.log('💬 DEBUG: notifyNewMessage completed')
       }
     )
     .subscribe((status, err) => {
@@ -457,10 +471,6 @@ function setupRealtimeNotifications() {
         console.log('✅ Chat messages channel subscribed')
       } else if (status === 'CHANNEL_ERROR') {
         console.error('❌ Chat messages channel error:', err)
-      } else if (status === 'TIMED_OUT') {
-        console.log('⏱️ Chat messages channel timed out')
-      } else {
-        console.log('🔔 Chat messages channel status:', status)
       }
     })
 }
@@ -491,4 +501,4 @@ process.on('SIGTERM', shutdown)
 process.on('SIGINT', shutdown)
 
 // Export for testing
-export { sendPushNotification, notifyNewMessage, notifyAppNotification }
+export { sendPushNotification, notifyNewMessage, notifyAppNotification, notifyCall }
