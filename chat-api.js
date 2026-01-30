@@ -12,7 +12,10 @@ const config = {
   TIDB_PASSWORD: process.env.TIDB_PASSWORD || 'VnSJyZS7gWFwFP23',
   TIDB_DATABASE: process.env.TIDB_DATABASE || 'test',
   PORT: process.env.PORT || 8080,
-  NODE_ENV: process.env.NODE_ENV || 'production'
+  NODE_ENV: process.env.NODE_ENV || 'production',
+  PUSH_API_URL: process.env.PUSH_API_URL || 'https://octopus-push-api-production-677b.up.railway.app',
+  SUPABASE_URL: process.env.SUPABASE_URL || 'https://hqrsymjlycynalfgkefx.supabase.co',
+  SUPABASE_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxcnN5bWpseWN5bmFsZmdrZWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5OTY1MDAsImV4cCI6MjA4MDU3MjUwMH0.2_o7PG-qQkYaFJSmGuvZFPi2nwQ7ERwaP5RE0fWuwWw'
 }
 
 const isDev = config.NODE_ENV !== 'production'
@@ -26,16 +29,16 @@ app.use(cors({
 
 app.use(express.json())
 
-// TiDB Connection Pool - REMOVED privatelink, use public endpoint
+// TiDB Connection Pool
 const pool = mysql.createPool({
-  host: config.TIDB_HOST.replace('-privatelink', ''), // Remove privatelink if present
+  host: config.TIDB_HOST.replace('-privatelink', ''),
   port: 4000,
   user: config.TIDB_USER,
   password: config.TIDB_PASSWORD,
   database: config.TIDB_DATABASE,
   ssl: {
     minVersion: 'TLSv1.2',
-    rejectUnauthorized: false // Changed to false for Railway compatibility
+    rejectUnauthorized: false
   },
   connectionLimit: 10,
   waitForConnections: true,
@@ -51,7 +54,6 @@ pool.getConnection()
   })
   .catch(err => {
     console.error('⚠️ Database connection failed:', err.message)
-    console.error('Server will start but database queries will fail')
   })
 
 // Health check
@@ -130,6 +132,11 @@ app.post('/api/messages', async (req, res) => {
       'SELECT * FROM chat_messages WHERE id = ?',
       [id]
     )
+
+    // Send push notification asynchronously
+    sendPushNotification(sender_id, receiver_id, message, photo).catch(err => {
+      console.error('❌ Push notification failed:', err.message)
+    })
 
     res.json({ message: newMessage[0] })
   } catch (error) {
@@ -224,6 +231,59 @@ app.get('/api/messages/unread-count', async (req, res) => {
   }
 })
 
+// Helper: Send push notification
+async function sendPushNotification(sender_id, receiver_id, message, photo) {
+  try {
+    // Fetch sender info from Supabase
+    const response = await fetch(`${config.SUPABASE_URL}/rest/v1/users?id=eq.${sender_id}&select=full_name,profile_photo_url`, {
+      headers: {
+        'apikey': config.SUPABASE_KEY,
+        'Authorization': `Bearer ${config.SUPABASE_KEY}`
+      }
+    })
+    
+    const users = await response.json()
+    const sender = users?.[0]
+
+    if (!sender) {
+      console.log('⚠️ Sender not found for push notification')
+      return
+    }
+
+    // Get unread count
+    const [rows] = await pool.execute(
+      'SELECT COUNT(*) as count FROM chat_messages WHERE receiver_id = ? AND is_seen = 0',
+      [receiver_id]
+    )
+    const unreadCount = rows[0]?.count || 1
+
+    // Send to push API
+    await fetch(`${config.PUSH_API_URL}/api/push/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: receiver_id,
+        notification: {
+          title: sender.full_name || 'New Message',
+          body: message || '📷 Sent a photo',
+          image: sender.profile_photo_url,
+          type: 'message',
+          userId: sender_id,
+          badge: unreadCount,
+          data: {
+            chatWithId: sender_id,
+            chatWith: sender.full_name
+          }
+        }
+      })
+    })
+
+    console.log('✅ Push notification sent:', sender.full_name, '→', receiver_id)
+  } catch (error) {
+    console.error('❌ sendPushNotification error:', error.message)
+  }
+}
+
 // Helper functions
 async function updateConversation(sender_id, receiver_id, message_id, created_at) {
   const user1 = sender_id < receiver_id ? sender_id : receiver_id
@@ -308,6 +368,7 @@ app.listen(config.PORT, '0.0.0.0', () => {
   console.log(`✅ Chat API running on port ${config.PORT}`)
   console.log(`📡 Environment: ${config.NODE_ENV}`)
   console.log(`🗄️  Database: ${config.TIDB_HOST}`)
+  console.log(`📱 Push API: ${config.PUSH_API_URL}`)
 })
 
 export { pool }
