@@ -103,7 +103,7 @@ app.post('/api/push/register', async (req, res) => {
     await supabase
       .from('push_tokens')
       .delete()
-      .eq('user_id', user_id)
+      .eq('user_id', String(userId))
       .eq('platform', platform)
 
     // Insert new token
