@@ -1,4 +1,3 @@
-
 import express from 'express'
 import cors from 'cors'
 import admin from 'firebase-admin'
@@ -16,47 +15,51 @@ app.use(cors({
 
 app.use(express.json())
 
-console.log('🔧 Starting Push API with HARDCODED credentials...')
-
-// HARDCODED FIREBASE CREDENTIALS
+// Load Firebase credentials from environment
 const FIREBASE_CONFIG = {
-  "type": "service_account",
-  "project_id": "josh-d6c",
-  "private_key_id": "d22640c44d1733f06d3fac1ca8b8b846bd66378f",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCzqLLl/CIMMhWa\n/Yk1BUdkz8s5mD1HD0mexF2AP31OJN1lDGcbhNPS+GnzK4HA7kcaJohvYvsrlSU0\nk7ELXUe97qJ6Zeab0/afFRnYY74lI3D7D395KzzbSPiz1LfDAsYnwNoo/CSd+EWf\nyfNWC72JbvEuHg0cDoUJfxvyWMPn9Ip5RQw+SJqLfHPQZGhpCH608RNpgSgQO5iN\nmgvXqqEMVwY3d6VjLFOGcLyHfoEhctfDdnUnHcZoBIitfhxJfJEMCqDwLz//DSLs\nHi3a9LleSULoMAEwx/uH8YiZGcwyNITKlyqrw7MWe9EkPMKOnprjzgGxrbdq1vcj\n11HpY2UrAgMBAAECggEACqLqNIOA4If2j36DKQhu+aDzvy0sM5DMIwItJvKbUI0O\nLnVVhWOPxuW+IA9rVyjEPOAbI70Qcbwav8oeqTWUkcIXDHgL9x3NdA2jwhPlpf07\nKyH3wgy1RaZEUyE83+bCJIheYh7LbC7OsG8cYPPA/On8jWZqEEcrySwlU2u97XWL\nY+oGKyXBd+1BzHn2APeE+EjVJH8j58zLrPDptYg8L0FvzNxiZM2Ur2QhG9Fcldho\nXNrqRz8/w0u/z54QvDOdBBaF7npbNwmdRPocjAxKQc0ARAaEe/JwuoXsNgfFGfUT\nOVhbp2ngIoi2wu6pFuQCdQYKT9abFSZyzbtrBWVZAQKBgQDoLUyK/I7vWNTo3UWP\nLqiKQPFeJ2gyR5tPy3avnDFnFjiBSBksJvsc7D7pHL7Y8xeyhhXy/AUx/ycq9Hr4\nUqtB7s03O87u3DDwovtXFAShc1MCT4VfldXwgHvyiVX5V0E2EepT5RJB5n7MUTGV\n9PtZJOzJI5nGC7ZAd5ul9ijf+wKBgQDGF+K56/UCcY0JhAburRQVMRvaYgNK1caW\nPEsJdv2ZiHyJRSFLPDGkl4Bwtx8rIvErOf5jaUefU4UDPaOUPlD2/EfWG9AbNHzm\n5fGmVnQp/Xwvo02y3HfOACibFEC2xBwjA+tSTftebBsFHJUzn6Kj2tJ8QgJU4nUr\nk4rMGCcYkQKBgCPChl2J1MIMno5XNlV9TDwvEH3999B2svcxUVBu8DT+eSmAX1Ar\nmNW1lWL2KHblyiqW+F56bppqwC+fhCknInV/QGBXd+HWTDtj/u5EiQoM5yYd9V7p\nhxAJ2g1bFcDXrZWUYNEXIR7BT5pMjySXnPb39vhr4U1dlG6NfY2sQlNtAoGADwgO\n90a1X8sYBanUENZnWLhSQb8AOvR/zjSjCQPTeIwHzy7EuP3HUpMAdw0eO1q6bCpJ\naGe7vJZM2JMbz4ru/97i4JdZskbIV4kJTjLvO6R1gPPmWHUsTiBq9GGUC4pUDEAm\n4ibytRaE8l1Z4QHzCHX5VN55aNGKTJU0igonJVECgYBRXB50nxuuEg7VAEUq4npy\npm5u3HSH+xIZhK6g/B9heKVl1Z+TaytUqzUpIAnrluUW4Lq3XRUlg15Y2/ALl5zc\nglN0tm0XZDRONgPYD7OYcuVXue7Ve08x39jeiqWUGaeCllPlDQy+qjWmcybNBaLN\nvRwP4RJmVIOmkpcdaZVEJg==\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-fbsvc@josh-d6c.iam.gserviceaccount.com",
-  "client_id": "102083422266274596438",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40josh-d6c.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
+  type: "service_account",
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+  universe_domain: "googleapis.com"
 }
 
-// HARDCODED SUPABASE CREDENTIALS
-const SUPABASE_URL = "https://hqrsymjlycynalfgkefx.supabase.co"
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxcnN5bWpseWN5bmFsZmdrZWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5OTY1MDAsImV4cCI6MjA4MDU3MjUwMH0.2_o7PG-qQkYaFJSmGuvZFPi2nwQ7ERwaP5RE0fWuwWw"
+// Load Supabase credentials from environment
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY
 
-console.log('🔍 DEBUG: Checking Firebase credentials...')
-console.log('   project_id:', FIREBASE_CONFIG.project_id)
-console.log('   client_email:', FIREBASE_CONFIG.client_email)
-console.log('   private_key exists:', !!FIREBASE_CONFIG.private_key)
-console.log('   private_key length:', FIREBASE_CONFIG.private_key?.length)
-console.log('   private_key first 50 chars:', FIREBASE_CONFIG.private_key?.substring(0, 50))
-console.log('   private_key has newlines:', FIREBASE_CONFIG.private_key?.includes('\n'))
+// Validate environment variables
+const requiredEnvVars = [
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_PRIVATE_KEY_ID',
+  'FIREBASE_PRIVATE_KEY',
+  'FIREBASE_CLIENT_EMAIL',
+  'FIREBASE_CLIENT_ID',
+  'FIREBASE_CLIENT_CERT_URL',
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY'
+]
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '))
+  process.exit(1)
+}
 
 // Initialize Firebase Admin
 try {
-  console.log('🔥 Initializing Firebase Admin...')
   admin.initializeApp({
     credential: admin.credential.cert(FIREBASE_CONFIG)
   })
-  console.log('✅ Firebase Admin initialized successfully!')
+  console.log('✅ Firebase Admin initialized')
 } catch (error) {
-  console.error('❌ Failed to initialize Firebase Admin')
-  console.error('   Error message:', error.message)
-  console.error('   Error code:', error.code)
-  console.error('   Full error:', error)
+  console.error('❌ Firebase initialization failed:', error.message)
   process.exit(1)
 }
 
@@ -65,28 +68,24 @@ let supabase
 try {
   supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     realtime: {
-      params: {
-        eventsPerSecond: 10
-      }
+      params: { eventsPerSecond: 10 }
     }
   })
   console.log('✅ Supabase client initialized')
-  console.log('   URL:', SUPABASE_URL)
 } catch (error) {
-  console.error('❌ Failed to initialize Supabase:', error.message)
+  console.error('❌ Supabase initialization failed:', error.message)
   process.exit(1)
 }
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     service: 'octopus-push-api',
     timestamp: new Date().toISOString(),
     config: {
-      firebase: '✅ initialized',
-      supabase: '✅ initialized',
-      mode: 'HARDCODED_CREDENTIALS'
+      firebase: '✅',
+      supabase: '✅'
     }
   })
 })
@@ -95,38 +94,29 @@ app.get('/health', (req, res) => {
 app.post('/api/push/register', async (req, res) => {
   const { user_id, token, platform } = req.body
 
-  console.log('📝 Register request:', { user_id, token: token?.substring(0, 20) + '...', platform })
-
   if (!user_id || !token || !platform) {
-    console.log('❌ Missing required fields')
     return res.status(400).json({ error: 'user_id, token, and platform required' })
   }
 
   try {
-    console.log('💾 Attempting to upsert into Supabase...')
-    
-    // First, try to delete any existing token for this user/platform combo
+    // Delete existing token for this user/platform
     await supabase
       .from('push_tokens')
       .delete()
       .eq('user_id', user_id)
       .eq('platform', platform)
 
-    // Then insert the new token
+    // Insert new token
     const { data, error } = await supabase
       .from('push_tokens')
       .insert({ user_id, token, platform })
 
-    if (error) {
-      console.error('❌ Supabase error:', error)
-      throw error
-    }
+    if (error) throw error
 
-    console.log('✅ Token registered successfully')
     res.json({ success: true, data })
   } catch (error) {
-    console.error('❌ Error registering token:', error)
-    res.status(500).json({ 
+    console.error('❌ Token registration failed:', error.message)
+    res.status(500).json({
       error: 'Failed to register token',
       details: isDev ? error.message : undefined
     })
@@ -151,12 +141,12 @@ app.post('/api/push/unregister', async (req, res) => {
 
     res.json({ success: true })
   } catch (error) {
-    console.error('Error unregistering token:', error)
+    console.error('❌ Token unregister failed:', error.message)
     res.status(500).json({ error: 'Failed to unregister token' })
   }
 })
 
-// 🧪 TEST ENDPOINT - Send a test notification to a user
+// Test endpoint
 app.post('/api/push/test', async (req, res) => {
   const { user_id } = req.body
 
@@ -164,25 +154,18 @@ app.post('/api/push/test', async (req, res) => {
     return res.status(400).json({ error: 'user_id required' })
   }
 
-  console.log('🧪 TEST: Sending test notification to user:', user_id)
-
   try {
     const result = await sendPushNotification(user_id, {
       title: 'Test Notification 🎉',
-      body: 'This is a test from your Push API! If you see this, it WORKS!',
+      body: 'This is a test from your Push API!',
       type: 'test',
       badge: 1
     })
 
-    console.log('✅ TEST: Notification sent. Result:', result)
-    res.json({ 
-      success: true, 
-      result,
-      message: 'Check your phone!'
-    })
+    res.json({ success: true, result, message: 'Check your phone!' })
   } catch (error) {
-    console.error('❌ TEST: Failed to send notification:', error)
-    res.status(500).json({ 
+    console.error('❌ Test notification failed:', error.message)
+    res.status(500).json({
       error: 'Failed to send test notification',
       details: error.message
     })
@@ -201,7 +184,7 @@ app.post('/api/push/send', async (req, res) => {
     const result = await sendPushNotification(user_id, notification)
     res.json(result)
   } catch (error) {
-    console.error('Error sending notification:', error)
+    console.error('❌ Push send failed:', error.message)
     res.status(500).json({ error: 'Failed to send notification' })
   }
 })
@@ -218,7 +201,7 @@ app.get('/api/messages/unread-count', async (req, res) => {
     const count = await getUnreadCount(user_id)
     res.json({ count })
   } catch (error) {
-    console.error('Error fetching unread count:', error)
+    console.error('❌ Unread count fetch failed:', error.message)
     res.status(500).json({ error: 'Failed to fetch unread count' })
   }
 })
@@ -226,29 +209,16 @@ app.get('/api/messages/unread-count', async (req, res) => {
 // Send push notification function
 async function sendPushNotification(userId, notification) {
   try {
-    console.log(`🔔 Fetching push tokens for user: ${userId}`)
-    
     const { data: tokens, error } = await supabase
       .from('push_tokens')
       .select('token, platform')
       .eq('user_id', userId)
 
-    if (error) {
-      console.error('❌ Error fetching tokens:', error)
-      throw error
-    }
-
-    console.log(`📱 Found ${tokens?.length || 0} token(s) for user ${userId}`)
+    if (error) throw error
 
     if (!tokens || tokens.length === 0) {
-      console.log(`⚠️  No push tokens for user ${userId}`)
       return { success: 0, failed: 0, message: 'No tokens registered' }
     }
-
-    // Log the tokens (first 20 chars only for security)
-    tokens.forEach((t, i) => {
-      console.log(`   Token ${i + 1}: ${t.token.substring(0, 20)}... (${t.platform})`)
-    })
 
     const message = {
       notification: {
@@ -279,22 +249,9 @@ async function sendPushNotification(userId, notification) {
       }
     }
 
-    console.log(`📤 Sending notification: "${notification.title}" - "${notification.body}"`)
-
     const results = await Promise.allSettled(
-      tokens.map(({ token, platform }) =>
+      tokens.map(({ token }) =>
         admin.messaging().send({ ...message, token })
-          .then(response => {
-            console.log(`✅ Notification sent successfully to ${platform}!`)
-            console.log(`   Message ID: ${response}`)
-            return response
-          })
-          .catch(error => {
-            console.error(`❌ Failed to send to ${platform}:`)
-            console.error(`   Error code: ${error.code}`)
-            console.error(`   Error message: ${error.message}`)
-            throw error
-          })
       )
     )
 
@@ -302,20 +259,16 @@ async function sendPushNotification(userId, notification) {
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
         const errorCode = result.reason?.code
-        console.error(`❌ Send failed for token ${index + 1}:`, errorCode)
-        
         if (
           errorCode === 'messaging/invalid-registration-token' ||
           errorCode === 'messaging/registration-token-not-registered'
         ) {
           invalidTokens.push(tokens[index].token)
-          console.log(`🗑️  Marking token ${index + 1} for deletion (invalid)`)
         }
       }
     })
 
     if (invalidTokens.length > 0) {
-      console.log(`🗑️  Deleting ${invalidTokens.length} invalid token(s)`)
       await supabase
         .from('push_tokens')
         .delete()
@@ -325,15 +278,9 @@ async function sendPushNotification(userId, notification) {
     const successCount = results.filter(r => r.status === 'fulfilled').length
     const failedCount = results.filter(r => r.status === 'rejected').length
 
-    console.log(`📊 Notification results: ${successCount} success, ${failedCount} failed`)
-
-    return {
-      success: successCount,
-      failed: failedCount
-    }
-
+    return { success: successCount, failed: failedCount }
   } catch (error) {
-    console.error('❌ Error in sendPushNotification:', error)
+    console.error('❌ sendPushNotification error:', error.message)
     throw error
   }
 }
@@ -341,11 +288,12 @@ async function sendPushNotification(userId, notification) {
 // Get unread message count
 async function getUnreadCount(userId) {
   try {
-    const response = await fetch(`${process.env.CHAT_API_URL || 'http://localhost:3001'}/api/messages/unread-count?user_id=${userId}`)
+    const response = await fetch(
+      `${process.env.CHAT_API_URL || 'http://localhost:3001'}/api/messages/unread-count?user_id=${userId}`
+    )
     const data = await response.json()
     return data.count || 0
   } catch (error) {
-    console.error('Error fetching unread count:', error)
     return 0
   }
 }
@@ -367,8 +315,6 @@ async function getAppNotificationCount(userId) {
 
 // Notify on new message
 async function notifyNewMessage(senderId, receiverId, message) {
-  console.log(`💬 Processing new message notification: ${senderId} → ${receiverId}`)
-  
   try {
     const { data: sender, error } = await supabase
       .from('users')
@@ -376,20 +322,9 @@ async function notifyNewMessage(senderId, receiverId, message) {
       .eq('id', senderId)
       .single()
 
-    if (error) {
-      console.error('❌ Error fetching sender:', error)
-      return
-    }
+    if (error || !sender) return
 
-    if (!sender) {
-      console.log('⚠️  Sender not found:', senderId)
-      return
-    }
-
-    console.log(`👤 Sender: ${sender.full_name}`)
-    console.log(`📧 Sending notification to receiver: ${receiverId}`)
-
-    const result = await sendPushNotification(receiverId, {
+    await sendPushNotification(receiverId, {
       title: sender.full_name,
       body: message.message || '📷 Sent a photo',
       image: sender.profile_photo_url,
@@ -401,18 +336,14 @@ async function notifyNewMessage(senderId, receiverId, message) {
         chatWith: sender.full_name
       }
     })
-
-    console.log(`✅ Message notification sent. Result:`, result)
   } catch (error) {
-    console.error('❌ Error in notifyNewMessage:', error)
+    console.error('❌ notifyNewMessage error:', error.message)
   }
 }
 
 // Notify on app notification
 async function notifyAppNotification(notification) {
   const { recipient_id, actor_id, type, post_id } = notification
-
-  console.log(`🔔 Processing app notification: ${type} from ${actor_id} to ${recipient_id}`)
 
   try {
     const { data: actor, error } = await supabase
@@ -421,15 +352,7 @@ async function notifyAppNotification(notification) {
       .eq('id', actor_id)
       .single()
 
-    if (error) {
-      console.error('❌ Error fetching actor:', error)
-      return
-    }
-
-    if (!actor) {
-      console.log('⚠️  Actor not found:', actor_id)
-      return
-    }
+    if (error || !actor) return
 
     const notificationTexts = {
       like: `${actor.full_name} liked your post`,
@@ -441,10 +364,7 @@ async function notifyAppNotification(notification) {
       friend_accept: `${actor.full_name} accepted your friend request`
     }
 
-    console.log(`👤 Actor: ${actor.full_name}`)
-    console.log(`📧 Sending ${type} notification to: ${recipient_id}`)
-
-    const result = await sendPushNotification(recipient_id, {
+    await sendPushNotification(recipient_id, {
       title: 'Octopus',
       body: notificationTexts[type] || 'New notification',
       image: actor.profile_photo_url,
@@ -453,134 +373,86 @@ async function notifyAppNotification(notification) {
       userId: actor_id,
       badge: await getAppNotificationCount(recipient_id)
     })
-
-    console.log(`✅ App notification sent. Result:`, result)
   } catch (error) {
-    console.error('❌ Error in notifyAppNotification:', error)
+    console.error('❌ notifyAppNotification error:', error.message)
   }
 }
 
-// Setup Supabase realtime listeners with better error handling
+// Setup Supabase realtime listeners
 let notificationsChannel = null
 let chatMessagesChannel = null
 
 function setupRealtimeNotifications() {
-  console.log('🔄 Setting up realtime listeners...')
-  
-  // Cleanup existing channels if any
-  if (notificationsChannel) {
-    supabase.removeChannel(notificationsChannel)
-  }
-  if (chatMessagesChannel) {
-    supabase.removeChannel(chatMessagesChannel)
-  }
-  
-  // Listen for new app notifications (likes, comments, follows, etc.)
+  // Cleanup existing channels
+  if (notificationsChannel) supabase.removeChannel(notificationsChannel)
+  if (chatMessagesChannel) supabase.removeChannel(chatMessagesChannel)
+
+  // Listen for new app notifications
   notificationsChannel = supabase
     .channel('notifications-channel', {
-      config: {
-        broadcast: { self: true }
-      }
+      config: { broadcast: { self: true } }
     })
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications'
-      },
+      { event: 'INSERT', schema: 'public', table: 'notifications' },
       async (payload) => {
-        console.log('🔔 New notification detected:', payload.new.type)
         await notifyAppNotification(payload.new)
       }
     )
     .subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        console.log('✅ notifications channel: SUBSCRIBED')
+        console.log('✅ Notifications channel subscribed')
       } else if (status === 'CHANNEL_ERROR') {
-        console.error('❌ notifications channel: ERROR', err)
-      } else if (status === 'TIMED_OUT') {
-        console.log('⏱️  notifications channel: TIMED_OUT, will retry...')
+        console.error('❌ Notifications channel error:', err)
       }
     })
 
   // Listen for new chat messages
   chatMessagesChannel = supabase
     .channel('chat-messages-channel', {
-      config: {
-        broadcast: { self: true }
-      }
+      config: { broadcast: { self: true } }
     })
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages'
-      },
+      { event: 'INSERT', schema: 'public', table: 'chat_messages' },
       async (payload) => {
         const message = payload.new
-        console.log(`💬 New message detected: ${message.sender_id} → ${message.receiver_id}`)
-        await notifyNewMessage(
-          message.sender_id,
-          message.receiver_id,
-          message
-        )
+        await notifyNewMessage(message.sender_id, message.receiver_id, message)
       }
     )
     .subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
-        console.log('✅ chat_messages channel: SUBSCRIBED')
+        console.log('✅ Chat messages channel subscribed')
       } else if (status === 'CHANNEL_ERROR') {
-        console.error('❌ chat_messages channel: ERROR', err)
-      } else if (status === 'TIMED_OUT') {
-        console.log('⏱️  chat_messages channel: TIMED_OUT, will retry...')
+        console.error('❌ Chat messages channel error:', err)
       }
     })
-
-  console.log('✅ Realtime notification listeners configured')
 }
 
-// Start server first, then setup listeners
+// Start server
 const PORT = process.env.PORT || 3002
-
 app.listen(PORT, () => {
   console.log(`✅ Push API running on port ${PORT}`)
-  console.log(`✅ Health check available at http://localhost:${PORT}/health`)
-  console.log(`🧪 Test endpoint available at POST /api/push/test`)
-  console.log('')
-  console.log('⚠️  IMPORTANT: Using HARDCODED credentials - for testing only!')
-  console.log('')
   
   // Setup realtime listeners after server starts
   setTimeout(() => {
     try {
       setupRealtimeNotifications()
     } catch (error) {
-      console.error('⚠️  Failed to setup realtime listeners:', error.message)
-      console.error('   The API will still work for direct push notifications')
+      console.error('⚠️ Realtime listeners setup failed:', error.message)
     }
-  }, 2000) // Wait 2 seconds before setting up realtime
+  }, 2000)
 })
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully')
+const shutdown = () => {
   if (notificationsChannel) supabase.removeChannel(notificationsChannel)
   if (chatMessagesChannel) supabase.removeChannel(chatMessagesChannel)
   process.exit(0)
-})
+}
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully')
-  if (notificationsChannel) supabase.removeChannel(notificationsChannel)
-  if (chatMessagesChannel) supabase.removeChannel(chatMessagesChannel)
-  process.exit(0)
-})
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
 
 // Export for testing
-export {
-  sendPushNotification,
-  notifyNewMessage,
-  notifyAppNotification
-}
+export { sendPushNotification, notifyNewMessage, notifyAppNotification }
