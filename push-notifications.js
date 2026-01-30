@@ -100,16 +100,9 @@ app.post('/api/push/register', async (req, res) => {
 
   try {
     // Delete existing token for this user/platform
-    await supabase
-      .from('push_tokens')
-      .delete()
-      .eq('user_id', String(userId))
-      .eq('platform', platform)
-
-    // Insert new token
     const { data, error } = await supabase
-      .from('push_tokens')
-      .insert({ user_id, token, platform })
+  .from('push_tokens')
+  .upsert({ user_id, token, platform }, { onConflict: 'token' })
 
     if (error) throw error
 
