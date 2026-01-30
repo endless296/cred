@@ -370,7 +370,7 @@ async function notifyCall(callerId, receiverId, callType) {
     if (error || !caller) return
 
     await sendPushNotification(receiverId, {
-      title: `${callType === 'video' ? '📹' : '📞'} Incoming ${callType} call`,
+      title: `Incoming ${callType} call`, 
       body: `${caller.full_name} is calling...`,
       image: caller.profile_photo_url,
       type: 'call',
