@@ -207,10 +207,15 @@ app.get('/api/messages/unread-count', async (req, res) => {
 // Send push notification function
 async function sendPushNotification(userId, notification) {
   try {
+    console.log('🔍 DEBUG: Fetching tokens for user:', userId)
+    
     const { data: tokens, error } = await supabase
       .from('push_tokens')
       .select('token, platform')
       .eq('user_id', userId)
+
+    console.log('🔍 DEBUG: Tokens found:', tokens?.length)
+    console.log('🔍 DEBUG: First token:', tokens?.[0]?.token?.substring(0, 30) + '...')
 
     if (error) throw error
 
@@ -247,16 +252,31 @@ async function sendPushNotification(userId, notification) {
       }
     }
 
+    console.log('🔍 DEBUG: Message to send:', JSON.stringify(message, null, 2))
+
     const results = await Promise.allSettled(
-      tokens.map(({ token }) =>
-        admin.messaging().send({ ...message, token })
-      )
+      tokens.map(({ token }) => {
+        console.log('🔍 DEBUG: Attempting send to:', token.substring(0, 30) + '...')
+        return admin.messaging().send({ ...message, token })
+          .then(response => {
+            console.log('✅ SUCCESS! Message ID:', response)
+            return response
+          })
+          .catch(error => {
+            console.error('❌ SEND FAILED:', error.code, '-', error.message)
+            console.error('Full error:', JSON.stringify(error, null, 2))
+            throw error
+          })
+      })
     )
+
+    console.log('🔍 DEBUG: All results:', results.map(r => r.status))
 
     const invalidTokens = []
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
         const errorCode = result.reason?.code
+        console.log('❌ Token failed with code:', errorCode)
         if (
           errorCode === 'messaging/invalid-registration-token' ||
           errorCode === 'messaging/registration-token-not-registered'
@@ -267,6 +287,7 @@ async function sendPushNotification(userId, notification) {
     })
 
     if (invalidTokens.length > 0) {
+      console.log('🗑️ Deleting invalid tokens:', invalidTokens.length)
       await supabase
         .from('push_tokens')
         .delete()
@@ -275,6 +296,8 @@ async function sendPushNotification(userId, notification) {
 
     const successCount = results.filter(r => r.status === 'fulfilled').length
     const failedCount = results.filter(r => r.status === 'rejected').length
+
+    console.log('📊 Final result: success=' + successCount + ', failed=' + failedCount)
 
     return { success: successCount, failed: failedCount }
   } catch (error) {
