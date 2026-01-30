@@ -100,14 +100,16 @@ app.post('/api/push/register', async (req, res) => {
 
   try {
     // Delete existing token for this user/platform
+    await supabase
+      .from('push_tokens')
+      .delete()
+      .eq('user_id', user_id)
+      .eq('platform', platform)
 
-    // NEW CODE:
-const { data, error } = await supabase
-  .from('push_tokens')
-  .upsert(
-    { user_id, token, platform },
-    { onConflict: 'user_id,platform' }
-  )
+    // Insert new token
+    const { data, error } = await supabase
+      .from('push_tokens')
+      .insert({ user_id, token, platform })
 
     if (error) throw error
 
@@ -437,8 +439,17 @@ function setupRealtimeNotifications() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'chat_messages' },
       async (payload) => {
+        console.log('💬 DEBUG: RAW PAYLOAD RECEIVED')
+        console.log('💬 DEBUG: Full payload:', JSON.stringify(payload, null, 2))
         const message = payload.new
+        console.log('💬 DEBUG: Parsed message:', {
+          sender_id: message.sender_id,
+          receiver_id: message.receiver_id,
+          message: message.message
+        })
+        console.log('💬 DEBUG: Calling notifyNewMessage...')
         await notifyNewMessage(message.sender_id, message.receiver_id, message)
+        console.log('💬 DEBUG: notifyNewMessage completed')
       }
     )
     .subscribe((status, err) => {
@@ -446,6 +457,10 @@ function setupRealtimeNotifications() {
         console.log('✅ Chat messages channel subscribed')
       } else if (status === 'CHANNEL_ERROR') {
         console.error('❌ Chat messages channel error:', err)
+      } else if (status === 'TIMED_OUT') {
+        console.log('⏱️ Chat messages channel timed out')
+      } else {
+        console.log('🔔 Chat messages channel status:', status)
       }
     })
 }
